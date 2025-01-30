@@ -4,15 +4,26 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 const getEmployees = asyncHandler(async (req, res) => {
-  const employees = await Employee.find({});
+  try {
+    const employees = await Employee.find({});
 
-  if (!employees) {
-    throw new ApiError(404, "No employees found");
+    if (!employees) {
+      throw new ApiError(404, "No employees found");
+    }
+
+    res
+      .status(200)
+      .json(new ApiResponse(200, employees, "Employees fetched successfully"));
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return res
+        .status(error.statusCode)
+        .json(new ApiResponse(error.statusCode, {}, error.message));
+    }
+    return res
+      .status(500)
+      .json(new ApiResponse(500, {}, "Internal server error"));
   }
-
-  res
-    .status(200)
-    .json(new ApiResponse(200, employees, "Employees fetched successfully"));
 });
 
 const getEmployee = asyncHandler(async (req, res) => {
@@ -53,7 +64,35 @@ const createEmployee = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, employee, "Employee created successfully"));
 });
 
-const updateEmployee = asyncHandler(async (req, res) => {});
+const updateEmployee = asyncHandler(async (req, res) => {
+  const { name, email, phone, department, position, dateOfEmployment, salary } =
+    req.body;
+
+  const employee = await Employee.findByIdAndUpdate(
+    req.params.id,
+    {
+      name,
+      email,
+      phone,
+      department,
+      position,
+      dateOfEmployment,
+      salary,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!employee) {
+    throw new ApiError(404, "Employee not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, employee, "Employee updated successfully"));
+});
 
 const deleteEmployee = asyncHandler(async (req, res) => {
   await Employee.findByIdAndDelete(req.params.id);
