@@ -7,6 +7,8 @@ const getEmployees = asyncHandler(async (req, res) => {
   try {
     const employees = await Employee.find({});
 
+    console.log(employees);
+    
     if (!employees) {
       throw new ApiError(404, "No employees found");
     }
