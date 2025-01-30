@@ -1,7 +1,10 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
+import { Employee } from "../models/employee.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 const generateAcessAndRefreshToken = async (userId) => {
   try {
@@ -21,57 +24,136 @@ const generateAcessAndRefreshToken = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
+  const session = await mongoose.startSession(); // Start a new session
+  session.startTransaction(); // Begin the transaction
+
   try {
-    const { username, email, password } = req.body;
+    const { fullname, email, password } = req.body;
 
-    console.log(req.body);
+    // // Validation (if needed)
+    // if (!fullname || !email || !password) {
+    //   throw new ApiError(400, "Please provide full name, email, and password");
+    // }
 
-    //Do the validation here
-    //   if (!username || !email || !password) {
-    //     throw new ApiError(400, "Please provide name, email and password");
-    //   }
-
-    const userExists = await User.findOne({
-      $or: [{ email }, { username }],
-    });
-
+    // Check if user already exists
+    const userExists = await User.findOne({ email }).session(session);
     if (userExists) {
-      throw new ApiError(
-        400,
-        "User with this email or username already exists"
-      );
+      throw new ApiError(400, "User with this email already exists");
     }
 
-    const user = await User.create({
-      username,
-      email,
-      password,
-    });
-
-    const newUser = await User.findById(user._id).select(
-      "-password -refreshToken -employee"
-    );
-
-    if (!newUser) {
+    // Create User document
+    const user = await User.create([{ email, password }], { session });
+    if (!user || user.length === 0) {
       throw new ApiError(500, "User registration failed");
     }
 
+    // Create Employee document linked to the User
+    const employee = await Employee.create(
+      [{ name: fullname, email, user: user[0]._id }],
+      {validateBeforeSave: false, session: session}
+    );
+
+    console.log(employee);
+
+    if (!employee || employee.length === 0) {
+      throw new ApiError(500, "Employee creation failed");
+    }
+
+    // Fetch the newly created user without sensitive fields
+    const newUser = await User.findById(user[0]._id)
+      .select("-password -refreshToken -employee")
+      .session(session);
+    if (!newUser) {
+      throw new ApiError(500, "Failed to retrieve user after creation");
+    }
+
+    // Commit the transaction
+    await session.commitTransaction(); 
+    session.endSession();  // End the session after commit
+
     return res
       .status(201)
-      .json(
-        new ApiResponse(201, newUser, "User registered successfully", newUser)
-      );
+      .json(new ApiResponse(201, newUser, "User registered successfully"));
   } catch (error) {
+    // If something goes wrong, abort the transaction
+    await session.abortTransaction();
+    session.endSession();  // End the session after aborting
+
     if (error instanceof ApiError) {
       return res
         .status(error.statusCode)
         .json(new ApiResponse(error.statusCode, {}, error.message));
     }
+
     return res
       .status(500)
       .json(new ApiResponse(500, {}, "Internal server error"));
   }
 });
+
+
+
+// const registerUser = asyncHandler(async (req, res) => {
+//   try {
+//     const { fullname, email, password } = req.body;
+
+//     //Do the validation here
+//     //   if (!username || !email || !password) {
+//     //     throw new ApiError(400, "Please provide name, email and password");
+//     //   }
+
+//     const userExists = await User.findOne({ email });
+
+//     if (userExists) {
+//       throw new ApiError(
+//         400,
+//         "User with this email or username already exists"
+//       );
+//     }
+
+//     const user = await User.create({
+//       email,
+//       password,
+//     });
+
+//     if (!user) {
+//       throw new ApiError(500, "User registration failed");
+//     }
+
+//     const employee = await Employee.create({
+//       name: fullname,
+//       email,
+//       user: user._id, 
+//     });
+
+//     if (!employee) {
+//       throw new ApiError(500, "User registration failed");
+//     }
+
+//     const newUser = await User.findById(user._id).select(
+//       "-password -refreshToken -employee"
+//     );
+
+//     if (!newUser) {
+//       throw new ApiError(500, "User registration failed");
+//     }
+
+//     return res
+//       .status(201)
+//       .json(
+//         new ApiResponse(201, newUser, "User registered successfully", newUser)
+//       );
+//   } catch (error) {
+//     if (error instanceof ApiError) {
+//       return res
+//         .status(error.statusCode)
+//         .json(new ApiResponse(error.statusCode, {}, error.message));
+//     }
+//     return res
+//       .status(500)
+//       .json(new ApiResponse(500, {}, "Internal server error"));
+//   }
+// });
 
 const loginUser = asyncHandler(async (req, res) => {
   try {
