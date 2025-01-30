@@ -9,13 +9,13 @@ import { verifyJWT, verifyAdmin } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-router.route("/request").post(verifyJWT, requestLeave);
+
 router.route("/").get(verifyJWT, getLeaves);
 router.route("/employee").get(verifyJWT, getEmployeeLeaves);
-
+router.route("/request").post(verifyJWT, requestLeave);
 
 // router.route("/:leaveId").get(verifyJWT, getLeave);
-router.route("/:leaveId/review").patch(verifyJWT, verifyAdmin, reviewLeave);
+router.route("/:leaveId/review").put(verifyJWT, verifyAdmin, reviewLeave);
 
 
 export default router;
