@@ -67,18 +67,20 @@ const getLeaves = asyncHandler(async (req, res) => {
 });
 
 //Get a single leave
-const getLeave = asyncHandler(async (req, res) => {
+const getEmployeeLeaves = asyncHandler(async (req, res) => {
   try {
-    const { leaveId } = req.params;
-    const leave = await Leave.findById(leaveId);
+    const employee = req.user._id;
 
-    if (!leave) {
+    //find all leaves for the given employee
+    const leaves = await Leave.find({ employee });
+
+    if (!leaves) {
       throw new ApiError(404, "Leave not found");
     }
 
     return res
       .status(200)
-      .json(new ApiResponse(200, leave, "Leave details fetched successfully"));
+      .json(new ApiResponse(200, leaves, "Leave details fetched successfully"));
   } catch (error) {
     if (error instanceof ApiError) {
       return res
@@ -164,4 +166,4 @@ const reviewLeave = asyncHandler(async (req, res) => {
   }
 });
 
-export { requestLeave, getLeaves, getLeave, reviewLeave };
+export { requestLeave, getLeaves, getEmployeeLeaves, reviewLeave };
