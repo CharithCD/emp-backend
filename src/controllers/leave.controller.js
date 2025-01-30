@@ -184,6 +184,10 @@ const reviewLeave = asyncHandler(async (req, res) => {
     const { leaveId } = req.params;
     const { status, comment } = req.body;
 
+    if (status !== "approved" && status !== "rejected") {
+      throw new ApiError(400, "Invalid status. Status must be approved or rejected");
+    }
+
     // Get the leave first to check previous status
     const previousLeave = await Leave.findById(leaveId);
     if (!previousLeave) {
@@ -221,17 +225,9 @@ const reviewLeave = asyncHandler(async (req, res) => {
     if (!employee) {
       throw new ApiError(404, "Employee not found");
     }
+    console.log("Status: ", status);
     await sendLeaveRequestEmail(employee.email, "Leave Request", status);
 
-    // // If status changed from approved to something else
-    // if (previousLeave.status === 'approved' && status !== 'approved') {
-    //   // Restore leave balance
-    //   await Employee.findByIdAndUpdate(
-    //     leave.employee,
-    //     { $inc: { leaveBalance: previousLeave.noDays } },
-    //     { new: true }
-    //   );
-    // }
 
     return res
       .status(200)
