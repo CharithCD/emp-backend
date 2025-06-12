@@ -287,9 +287,8 @@ const refreshToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Invalid token");
     }
 
-    const { accessToken, newRefreshToken } = await generateAcessAndRefreshToken(
-      user._id
-    );
+    const { accessToken, refreshToken: newRefreshToken } =
+      await generateAcessAndRefreshToken(user._id);
 
     const options = {
       httpOnly: true,
