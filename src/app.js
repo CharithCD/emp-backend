@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-//imoport routes
+// import routes
 import userRoutes from "./routes/user.routes.js";
 import leaveRoutes from "./routes/leave.routes.js";
 import employeeRoutes from "./routes/employee.routes.js";
