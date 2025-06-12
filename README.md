@@ -27,7 +27,7 @@ Ensure you have the following installed:
 1. **Clone the repository:**
    ```sh
    git clone https://github.com/CharithCD/emp-backend
-   cd backend
+   cd emp-backend
    ```
 
 2. **Install dependencies:**
